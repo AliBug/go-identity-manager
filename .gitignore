@@ -15,8 +15,10 @@
 .DS_Store
 
 # Test file
-cmd.txt
-config_local.yaml
+mock/
+#cmd.txt
+#config_local.yaml
+#config_rbac_domain.conf
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
