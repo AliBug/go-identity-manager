@@ -2,14 +2,14 @@ package body
 
 // RoleForUser -
 type RoleForUser struct {
-	UserID string `json:"id,omitempty" binding:"required"`
+	User   string `json:"user,omitempty" binding:"required"`
 	Role   string `json:"role,omitempty"`
 	Domain string `json:"domain,omitempty"`
 }
 
-// GetUserID -
-func (r *RoleForUser) GetUserID() string {
-	return r.UserID
+// GetUser -
+func (r *RoleForUser) GetUser() string {
+	return r.User
 }
 
 // GetRole -

@@ -5,18 +5,20 @@ import (
 	"time"
 
 	"github.com/alibug/go-identity-utils/config"
+	"github.com/alibug/go-identity-utils/mongoconn"
 	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
 
-	_casbinDelivery "github.com/alibug/go-user-casbin/rbac/delivery/restgin"
-	_rbacInDomainRepo "github.com/alibug/go-user-casbin/rbac/repository/rbacdomain"
-	_rbacInDomainUseCase "github.com/alibug/go-user-casbin/rbac/usecase"
+	_casbinDelivery "github.com/alibug/go-identity-manager/rbac/delivery/restgin"
+	_rbacUseCase "github.com/alibug/go-identity-manager/rbac/usecase"
+	_usersDelivery "github.com/alibug/go-identity-manager/users/delivery/restgin"
+	_usersRepo "github.com/alibug/go-identity-manager/users/repository/mongodb"
+	_usersUseCase "github.com/alibug/go-identity-manager/users/usecase"
 	_casbinAdapter "github.com/casbin/mongodb-adapter/v3"
 )
 
 func main() {
 	mongoURL := config.ReadMongoConfig("mongo")
-	log.Println("url:", mongoURL)
 
 	timeDuration := 100 * time.Second
 
@@ -34,8 +36,35 @@ func main() {
 	}
 
 	route := gin.Default()
-	rbacDomainRepo := _rbacInDomainRepo.NewCasbinRepository(enforcer)
-	rbacDomainUseCase := _rbacInDomainUseCase.NewRBACinDomainUsecase(rbacDomainRepo, timeDuration)
+	rbacDomainUseCase := _rbacUseCase.NewRBACinDomainUsecase(enforcer)
 	_casbinDelivery.NewRBACinDomainHandler(route, rbacDomainUseCase)
+
+	roleManager := _rbacUseCase.NewRoleManagerUsecase(enforcer)
+	_casbinDelivery.NewRoleManagerHandler(route, roleManager)
+
+	// read mongo config
+	conn, err := mongoconn.NewConn(mongoURL, timeDuration)
+	if err != nil {
+		log.Fatalf("Init DB conn fail: %v", err)
+	}
+
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	err = conn.Ping()
+	if err != nil {
+		log.Fatal("Connect to DB fail")
+	}
+
+	// New users collection
+	usersColl := conn.GetColl("users")
+	usersRepo := _usersRepo.NewMongoUserRepository(usersColl)
+	usersUserCase := _usersUseCase.NewUsersUsecase(usersRepo, timeDuration)
+	_usersDelivery.NewRoleManagerHandler(route, usersUserCase, roleManager)
+
 	route.Run()
 }
